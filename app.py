@@ -15,6 +15,7 @@ from quart import (
     render_template,
     current_app,
 )
+from typing import Optional
 
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import (
@@ -880,6 +881,35 @@ async def generate_title(conversation_messages) -> str:
     except Exception as e:
         logging.exception("Exception while generating title", e)
         return messages[-2]["content"]
+
+
+def construct_search_payload(selected_index: Optional[str] = None) -> dict:
+    """
+    Build a search payload configuration using Azure OpenAI settings.
+    If a selected_index is provided by the frontend, override the default index.
+
+    Parameters:
+        selected_index (Optional[str]): The index chosen by the user.
+    
+    Returns:
+        dict: A dictionary with the search payload configuration.
+    """
+    payload = {
+        "model": app_settings.azure_openai.model,
+        "temperature": app_settings.azure_openai.temperature,
+        "top_p": app_settings.azure_openai.top_p,
+        "max_tokens": app_settings.azure_openai.max_tokens,
+        "stream": app_settings.azure_openai.stream,
+    }
+    
+    # Add any extra settings like embedding_dependency
+    payload["embedding_dependency"] = app_settings.azure_openai.extract_embedding_dependency()
+
+    # Override the index if provided by the frontend.
+    if selected_index:
+        payload["index_name"] = selected_index
+
+    return payload
 
 
 app = create_app()
